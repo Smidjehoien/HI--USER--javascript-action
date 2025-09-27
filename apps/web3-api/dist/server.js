@@ -6,6 +6,7 @@ import { jsonSchemaTransform } from 'fastify-type-provider-zod';
 import { loadConfig } from './env.js';
 import { registerRoutes } from './routes.js';
 import { authPlugin } from './plugins/auth.js';
+import { toBase32Crockford } from './lib/base32.js';
 async function buildServer() {
     const app = Fastify({
         logger: {
@@ -37,14 +38,33 @@ async function buildServer() {
         transform: jsonSchemaTransform
     });
     await app.register(swaggerUI, { routePrefix: '/docs' });
-    // Auth only for /v1 paths (register in a prefixed scope)
-    await app.register(async (instance) => {
-        await instance.register(authPlugin, { apiKeys: instance.config.apiKeys });
-    }, { prefix: '/v1' });
+    // Auth plugin guards only /v1/* (skips /health and docs internally)
+    await app.register(authPlugin, { apiKeys: app.config.apiKeys });
     await registerRoutes(app);
     // OpenAPI JSON shortcut
     app.get('/openapi.json', async (_req, reply) => {
         reply.send(app.swagger());
+    });
+    // Ensure no 404s leak under /v1/* — treat unknown routes as unauthorized with lore
+    app.setNotFoundHandler(async (req, reply) => {
+        if (req.raw.url && req.raw.url.startsWith('/v1/')) {
+            if (req.apiKeyValid) {
+                return reply.code(404).send({ error: 'Not Found' });
+            }
+            // jitter 150–400ms for unauthorized probes
+            await new Promise((r) => setTimeout(r, 150 + Math.random() * 250));
+            const lore = 'fatal: route not found; hint: we only speak ApiKey here.';
+            return reply
+                .header('www-authenticate', 'ApiKey realm="web3-api"')
+                .code(401)
+                .send({
+                error: 'Unauthorized',
+                lore: toBase32Crockford(lore),
+                loreEnc: 'base32'
+            });
+        }
+        // Default: regular 404 for non‑API paths
+        reply.code(404).send({ error: 'Not Found' });
     });
     return app;
 }

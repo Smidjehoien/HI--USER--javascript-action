@@ -171,17 +171,20 @@ export async function registerRoutes(app: FastifyInstance) {
             .default(app.config.confirmationsDefault)
         }),
         response: {
-          200: z.object({
-            hash: z.string(),
-            blockNumber: z.string().nullable(),
-            status: z.enum(['pending', 'success', 'reverted']),
-            from: z.string().nullable(),
-            to: z.string().nullable(),
-            value: z.string().nullable(),
-            confirmations: z.number(),
-            finality: z.enum(['pending', 'safe'])
-          }),
-          404: z.object({ error: z.string() })
+          200: z.union([
+            z.object({
+              found: z.literal(true),
+              hash: z.string(),
+              blockNumber: z.string().nullable(),
+              status: z.enum(['pending', 'success', 'reverted']),
+              from: z.string().nullable(),
+              to: z.string().nullable(),
+              value: z.string().nullable(),
+              confirmations: z.number(),
+              finality: z.enum(['pending', 'safe'])
+            }),
+            z.object({ found: z.literal(false) })
+          ])
         },
         tags: ['read']
       },
@@ -206,15 +209,16 @@ export async function registerRoutes(app: FastifyInstance) {
       ])
 
       if (!tx && !receipt) {
-        reply.code(404).send({ error: 'Transaction not found' })
+        reply.code(200).send({ found: false })
         return
       }
 
       const blockNumber = receipt?.blockNumber ?? tx?.blockNumber ?? null
-      const status = receipt?.status ?? (blockNumber ? 'pending' : 'pending')
+      const status = receipt?.status ?? 'pending'
       const conf = blockNumber ? Number(head - blockNumber) : 0
       const finality = conf >= confirmations ? 'safe' : 'pending'
       reply.send({
+        found: true,
         hash,
         blockNumber: blockNumber ? blockNumber.toString() : null,
         status: status as 'pending' | 'success' | 'reverted',
