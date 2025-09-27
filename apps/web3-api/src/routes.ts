@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { formatEther, formatUnits } from 'viem'
 import { ERC20_ABI } from './abi.js'
 import { makePublicClient, type ChainKey } from './rpc.js'
 
@@ -84,7 +85,7 @@ export async function registerRoutes(app: FastifyInstance) {
         client.getBalance({ address: address as `0x${string}` }),
         client.getBlockNumber()
       ])
-      const ether = (Number(wei) / 1e18).toString()
+      const ether = formatEther(wei as bigint)
       reply.send({
         address,
         wei: wei.toString(),
@@ -143,9 +144,9 @@ export async function registerRoutes(app: FastifyInstance) {
         })
       ])
       const formatted =
-        BigInt(raw as bigint).toString() === '0'
+        BigInt(raw as bigint) === 0n
           ? '0'
-          : (Number(raw as bigint) / 10 ** Number(decimals)).toString()
+          : formatUnits(raw as bigint, Number(decimals))
       reply.send({
         contract,
         holder,

@@ -32,7 +32,12 @@ async function buildServer() {
     global: false,
     max: app.config.rateLimit.max,
     timeWindow: app.config.rateLimit.timeWindow,
-    keyGenerator: (req) => String(req.headers['x-api-key'] ?? req.ip)
+    keyGenerator: (req) => {
+      const raw = req.headers['x-api-key'] as string | string[] | undefined
+      const key = Array.isArray(raw) ? String(raw[0] ?? '') : String(raw ?? '')
+      const trimmed = key.trim()
+      return trimmed ? `key:${trimmed}` : `ip:${req.ip}`
+    }
   })
 
   // Swagger + OpenAPI

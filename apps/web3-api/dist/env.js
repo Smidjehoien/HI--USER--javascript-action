@@ -21,6 +21,13 @@ export function loadConfig() {
         timeWindow: Number(getEnv('RATE_LIMIT_WINDOW') ?? '60000')
     };
     const confirmationsDefault = Math.max(0, Number(getEnv('CONFIRMATIONS') ?? '1'));
-    return { port, chainDefault, alchemyApiKey, apiKeys, rateLimit, confirmationsDefault };
+    return {
+        port,
+        chainDefault,
+        alchemyApiKey,
+        apiKeys,
+        rateLimit,
+        confirmationsDefault
+    };
 }
 //# sourceMappingURL=env.js.map

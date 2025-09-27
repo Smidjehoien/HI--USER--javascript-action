@@ -13,6 +13,9 @@ export function getRpcUrl(chain, alchemyApiKey) {
     return `https://${slug}.g.alchemy.com/v2/${alchemyApiKey}`;
 }
 export function makePublicClient(chain, alchemyApiKey) {
-    return createPublicClient({ chain: chainMap[chain], transport: http(getRpcUrl(chain, alchemyApiKey)) });
+    return createPublicClient({
+        chain: chainMap[chain],
+        transport: http(getRpcUrl(chain, alchemyApiKey))
+    });
 }
 //# sourceMappingURL=rpc.js.map
