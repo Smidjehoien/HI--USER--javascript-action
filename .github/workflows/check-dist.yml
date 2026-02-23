@@ -29,15 +29,19 @@ jobs:
       # Checkout the repository.
       - name: Checkout
         id: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # Setup Node.js using the version specified in `.node-version`.
       - name: Setup Node.js
         id: setup-node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version-file: .node-version
           cache: npm
+
+      - name: Remove dist/ Directory
+        id: remove-dist
+        run: npx rimraf ./dist
 
       # Install dependencies using `npm ci`.
       - name: Install Dependencies
@@ -70,7 +74,7 @@ jobs:
       - if: ${{ failure() && steps.diff.outcome == 'failure' }}
         name: Upload Artifact
         id: upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dist
           path: dist/
